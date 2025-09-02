@@ -1,0 +1,32 @@
+esphome:
+  name: night-light
+  friendly_name: Night Light
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "4rz9s1TMzNpn+laghiQLhBXQeMJ8q6e5yZfSuO91EW8="
+
+ota:
+  - platform: esphome
+    password: "e3f97b54ef0764ff1d82b79b6a19575d"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Night-Light Fallback Hotspot"
+    password: "srzKngrhekmG"
+
+captive_portal:
+    

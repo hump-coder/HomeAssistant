@@ -1,0 +1,69 @@
+
+
+##
+## BEST
+##
+
+
+https://github.com/pvprodk/GrowattESPHome/blob/main/growatt.yaml
+
+
+
+
+##
+## other
+##
+
+
+
+
+
+
+https://solar-assistant.io/help/growatt/sph-range?srsltid=AfmBOooYZGriOPgIGoC6re56UaugcDMlQ7MTzlD36-HDFeigHr1MfoeH
+
+https://community.home-assistant.io/t/esphome-modbus-growatt-shinewifi-s/369171/158?page=8
+https://community.home-assistant.io/t/esphome-modbus-growatt-shinewifi-s/369171/246
+
+https://github.com/pvprodk/GrowattESPHome/blob/main/growatt.yaml
+
+
+
+growatt pword: yyyymmdd eg: growatt20221021
+
+growatt20250606
+
+
+That was a lot easier than expected - below 4 write settings to adjust charge speed, charge max SoC, discharge speed, discharge min SoC; all for the SPH 3phase series but most likely compatible with SPA as well - tested this on my set up and this works great; use case, reduce charge speed when simultaneously charging car (to avoid blowing the fuses); automating charging and discharging to a specific SoC to get you “through the night” etc:
+
+number:
+  - platform: modbus_controller
+    name: "${devicename} Discharge SoC"
+    address: 1071
+    value_type: U_WORD
+    min_value: 10
+    max_value: 100
+    step: 1
+
+  - platform: modbus_controller
+    name: "${devicename} Discharge Power Rate"
+    address: 1070
+    value_type: U_WORD
+    min_value: 10
+    max_value: 100
+    step: 1
+
+  - platform: modbus_controller
+    name: "${devicename} Charge SoC"
+    address: 1091
+    value_type: U_WORD
+    min_value: 10
+    max_value: 100
+    step: 1
+
+  - platform: modbus_controller
+    name: "${devicename} Charge Power Rate"
+    address: 1090
+    value_type: U_WORD
+    min_value: 10
+    max_value: 100
+    step: 1

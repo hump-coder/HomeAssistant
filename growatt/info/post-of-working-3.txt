@@ -1,0 +1,385 @@
+Hw used:
+
+d1 mini (esp8266mod) that was laying around from previous projects with esphome latest (flashed through esphome gui flasher for the first time, then updated through esphome addon in HA)
+Hi-link 220v to 5v chip (power supply)
+RS485 to ttl (https://a.aliexpress.com/_m0sRSky)
+Varistor 275v (took it out from an old zigbee module)
+120R ohm resistor between pinns A & B of rs to ttl converter (https://a.aliexpress.com/_mKjAcws)
+RJ-45 T-568B pinout (starts with orange/white ,orange …) (as per growatt manual)
+Setup:
+
+Hi-link AC inputs to wall socket (AC plug)
+Hi-link Vo+ , Vo- to d1 mini pins 5v and gnd respectively (i used the 5v pin to power on the d1 mini)
+pins 3v3,Tx,Rx,Gnd to RS485 to ttl pins Vcc,Tx,Rx,Gnd respectively
+RJ45 white orange and orange pins to B- and A+ of rs485 to ttl converter (had to cycle all network cable pins to get the correct ones, first used orange/white and blue/white but only had tx working so i kept on switching till i found correct one)
+Notes:
+0/ I also plugged the cable of the d1 mini into the micro usb port in case i need to plug it into the pc but power is supplied from Hi-link chip (much more stable)
+1/ Had to use board: esp01_1m, i’ve tried d1 mini and other but only this worked
+2/ Baud rate 9600 - 115200 didn’t work
+3/ modbus address 0x1
+4/ formatting is very important in yaml or you’ll get syntax errors
+5/ rs485 to ttl worked with both 5v or 3.3v but i adopted 3.3v not to fry it :slight_smile:
+6/ was able to go down to 1s sampling in code but this was clogging the chips so reverted to 5s
+
+esphome yaml setup based on extract from Plawa @candidotsa @JohnGalt1717 and everyone else in this thread to make it possible to automate based on realtime (5s delay) input from growatt (thks guys)
+still WIP:
+
+
+substitutions:
+  devicename: Growatt
+  friendly_name: "Growatt SPF 5k"
+  esp_name: ESP Growatt #Device Name
+  update_realtime: 5s
+  update_fast: 5s
+  update_slow: 10s
+  esp_hostname: "esp-growatt"
+  ip_address: 10.0.0.36
+  ip_gw: 10.0.0.1
+  ip_netmask: 255.255.255.0
+
+
+esphome:
+  name: ${esp_hostname}
+
+esp8266:
+    board: esp01_1m
+    
+# Enable logging
+logger:
+    baud_rate: 0
+    level: DEBUG
+# Enable Home Assistant API
+api:
+    encryption:
+      key: !secret api_key
+ota:
+    password: !secret ota_password
+    
+wifi:
+    ssid: !secret wifi_ssid
+    password: !secret wifi_password
+    manual_ip:
+      static_ip: ${ip_address}
+      gateway: ${ip_gw}
+      subnet: ${ip_netmask}
+    #reboot_timeout: 2min
+    ap:
+      ssid: "${esp_name} Fallback Hotspot"
+      password: !secret ap_password
+
+captive_portal:
+
+web_server:
+    port: 80
+    include_internal: true  
+
+uart:
+    id: mod_bus
+    baud_rate: 9600
+    tx_pin: 1
+    rx_pin: 3
+    debug:
+      direction: RX
+      dummy_receiver: false
+      after:
+        delimiter: "\n"
+      sequence:
+        - lambda: UARTDebug::log_string(direction, bytes);
+ 
+modbus:
+  id: modbus1
+  uart_id: mod_bus
+ 
+modbus_controller:
+  - id: growatt
+    address: 0x1
+    modbus_id: modbus1
+    update_interval: ${update_realtime}
+    setup_priority: -10    
+    
+button:
+  - platform: restart
+    name: "${esp_name} Restart"
+
+text_sensor:
+  - platform: template
+    name: "${friendly_name} Status"
+    icon: mdi:eye
+    entity_category: diagnostic
+    lambda: |-
+      if ((id(status).state) == 1) {
+          return {"Normal"};
+        } else if ((id(status).state) == 0)  {
+          return {"Standby"};
+        } else if ((id(status).state) == 2)  {
+          return {"Discharge"};
+        } else if ((id(status).state) == 3)  {
+          return {"Fault"};
+        } else if ((id(status).state) == 4)  {
+          return {"Flash"};
+        } else if ((id(status).state) == 5)  {
+          return {"PV Charging"};
+        } else if ((id(status).state) == 6)  {
+          return {"AC Charging"};
+        } else if ((id(status).state) == 7)  {
+          return {"Combined Charging"};
+        } else if ((id(status).state) == 8)  {
+          return {"Combined Charging & Bypass"};
+        } else if ((id(status).state) == 9)  {
+          return {"PV Charging & Bypass"};
+        } else if ((id(status).state) == 10)  {
+          return {"AC Charging & Bypass"};
+        } else if ((id(status).state) == 11)  {
+          return {"Bypass"};
+        } else if (id(status).state == 12)  {
+          return {"PV Charge and Discharge"};
+        } else {
+          return {"Unknown"};
+        }
+
+sensor:
+
+  - platform: modbus_controller
+    address: 0
+    register_type: "read"
+    internal: true
+    accuracy_decimals: 0
+    id: status
+
+  - platform: wifi_signal
+    name: "WiFi Signal Sensor"
+    update_interval: 60s
+
+# PPV 1 since only 1 PV input 
+  - platform: modbus_controller
+    name: "PV1 voltage "
+    address: 1
+    register_type: "read"
+    unit_of_measurement: V
+    device_class: voltage
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.1
+
+  - platform: modbus_controller
+    name: "PV1 Power"
+    id: pv1_power_high
+    address: 3
+    register_type: "read"
+    unit_of_measurement: W
+    device_class: power
+    state_class: measurement
+    icon: mdi:solar-power-variant
+    value_type: U_DWORD
+    accuracy_decimals: 0
+    internal: true    
+    filters:
+    - multiply: 0.1
+
+# Load Related 
+  - platform: modbus_controller
+    name: "Load Consumption"
+    id: op_power_high
+    address: 9
+    register_type: "read"
+    unit_of_measurement: W
+    device_class: power
+    state_class: measurement
+    icon: mdi:solar-power-variant
+    value_type: U_DWORD
+    accuracy_decimals: 0
+    internal: true
+    filters:
+    - multiply: 0.1
+
+  - platform: modbus_controller
+    name: "Load Consumption (VA)"
+    id: op_apparent_power
+    address: 11
+    register_type: "read"
+    unit_of_measurement: VA
+    device_class: power
+    state_class: measurement
+    icon: mdi:solar-power-variant
+    value_type: U_DWORD
+    accuracy_decimals: 0
+    internal: true
+    filters:
+    - multiply: 0.1
+
+  - platform: modbus_controller
+    name: "Load %"
+    address: 27
+    register_type: "read"
+    unit_of_measurement: "%"
+    device_class: POWER_FACTOR
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 0
+    filters:
+    - multiply: 0.1
+
+  - platform: modbus_controller
+    name: "Load Input Current (A) in AC"
+    address: 34
+    register_type: "read"
+    unit_of_measurement: A
+    device_class: power
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.1
+
+  - platform: modbus_controller
+    name: "AC Output Voltage"
+    address: 22
+    register_type: "read"
+    unit_of_measurement: V
+    device_class: voltage
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.1
+
+  - platform: modbus_controller
+    name: "DC Output Voltage"
+    address: 24
+    register_type: "read"
+    unit_of_measurement: V
+    device_class: voltage
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.1
+
+  - platform: modbus_controller
+    name: "Load Input Current (A)"
+    address: 7
+    register_type: "read"
+    unit_of_measurement: A
+    device_class: power
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.1
+# Temperatures Monitors
+
+  - platform: modbus_controller
+    name: "Inverter Temperature"
+    address: 25
+    register_type: "read"
+    unit_of_measurement: °C
+    device_class: temperature
+    entity_category: diagnostic
+    state_class: measurement
+    icon: mdi:thermometer
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.1
+  
+  - platform: modbus_controller
+    name: "PV Temperature"
+    address: 32
+    register_type: "read"
+    unit_of_measurement: °C
+    device_class: temperature
+    entity_category: diagnostic
+    state_class: measurement
+    icon: mdi:thermometer
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.1
+
+  - platform: modbus_controller
+    name: "DC Bus Temperature"
+    address: 26
+    register_type: "read"
+    unit_of_measurement: °C
+    device_class: temperature
+    entity_category: diagnostic
+    state_class: measurement
+    icon: mdi:thermometer
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.1
+
+## %percentages ## 
+
+  - platform: modbus_controller
+    name: "Battery Voltage"
+    address: 17
+    register_type: "read"
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+    - multiply: 0.01
+
+  - platform: modbus_controller
+    name: "Battery SoC"
+    address: 18
+    register_type: "read"
+    unit_of_measurement: "%"
+    device_class: POWER_FACTOR
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 0
+    filters:
+    - multiply: 1
+
+  - platform: modbus_controller
+    name: "MPPT Charger fan speed"
+    address: 81
+    register_type: "read"
+    unit_of_measurement: "%"
+    device_class: POWER_FACTOR
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 0
+    filters:
+    - multiply: 1
+
+  - platform: modbus_controller
+    name: "Inverter fan speed"
+    address: 82
+    register_type: "read"
+    unit_of_measurement: "%"
+    device_class: POWER_FACTOR
+    state_class: measurement
+    entity_category: diagnostic
+    icon: mdi:flash
+    value_type: U_WORD
+    accuracy_decimals: 0
+    filters:
+    - multiply: 1
+	
+	

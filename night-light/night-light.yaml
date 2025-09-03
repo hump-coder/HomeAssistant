@@ -30,14 +30,25 @@ wifi:
 
 captive_portal:
 
+<<<<<<< HEAD
 light:
   - platform: monochromatic
     name: "White LED"
     output: white_led_output
     restore_mode: ALWAYS_ON
 
+=======
+>>>>>>> fc4521bb9984cd854e1c1d0885c7297476ef27bb
 output:
   - platform: ledc
     pin: GPIO4
     id: white_led_output
 
+<<<<<<< HEAD
+=======
+light:
+  - platform: monochromatic
+    name: "White LED"
+    output: white_led_output
+    restore_mode: ALWAYS_OFF
+>>>>>>> fc4521bb9984cd854e1c1d0885c7297476ef27bb

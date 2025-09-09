@@ -1,0 +1,46 @@
+#
+# This gets added to configuration.yaml in Home Assistant.
+#
+
+#
+# Defines a sensor that caluculates counts of toggles of the rain_gauge (zigbee door sensor)
+#
+
+sensor:
+  - platform: history_stats
+    unique_id: rain_gauge_flips_on
+    name: "Rain Gauge flips/on"
+    entity_id: binary_sensor.rain_gauge
+    state: "on"
+    type: count
+    start: "{{ now() - timedelta(hours=24)}}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    unique_id: rain_gauge_flips_off
+    name: "Rain Gauge flips/off"
+    entity_id: binary_sensor.rain_gauge
+    state: "off"
+    type: count
+    start: "{{ now() - timedelta(hours=24)}}"
+    end: "{{ now() }}"
+
+ #
+ # Defines a template sensor that uses the flips caluculated above
+ # creates a daily measurement.
+ #
+ #
+
+template:  
+ 
+  - sensor:
+      - name: Rainfall [day]
+        state_class: measurement
+        unique_id: rainfall_day
+        unit_of_measurement: mm
+        icon: mdi:weather-pouring
+        state: >-
+          {% set count = (states('sensor.rain_gauge_flips_on') | int(0)) + (states('sensor.rain_gauge_flips_off') | int(0)) %}
+          {% set mm = count * 0.31569 %}
+          {% if count >= 0 %}
+            {{ mm|round(1, 'floor') }}
+          {% endif %}

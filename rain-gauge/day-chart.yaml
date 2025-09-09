@@ -1,0 +1,30 @@
+#
+# Added to a dashboard to create a daily chart of rain.
+#
+
+type: custom:mini-graph-card
+icon: mdi:weather-rainy
+name: Rain
+aggregate_func: max
+hours_to_show: 360
+group_by: date
+show:
+  graph: bar
+  fill: true
+  icon: false
+color_thresholds:
+  - value: 12
+    color: "#030ffc"
+  - value: 7
+    color: "#353ffc"
+  - value: 5
+    color: "#656dfc"
+  - value: 3
+    color: "#979dfc"
+  - value: 1
+    color: "#afb3fa"
+  - value: 0
+    color: "#ffffff"
+entities:
+  - entity: sensor.rainfall_per_day
+    state_adaptive_color: false

@@ -1,0 +1,26 @@
+---
+#
+# Cumulative rainfall for the current year with last year comparison.
+#
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Cumulative Rainfall (Year)
+graph_span: 1y
+span:
+  start: year
+series:
+  - entity: sensor.rainfall_year
+    name: This Year
+    type: line
+    group_by:
+      duration: 1day
+      func: last
+  - entity: sensor.rainfall_year
+    name: Last Year
+    type: line
+    offset: -1y
+    group_by:
+      duration: 1day
+      func: last

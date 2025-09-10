@@ -1,0 +1,95 @@
+---
+# Additional sensors for long-term rain statistics.
+
+sensor:
+  - platform: history_stats
+    unique_id: rain_gauge_flips_on_week
+    name: "Rain Gauge flips/on [week]"
+    entity_id: binary_sensor.rain_gauge
+    state: "on"
+    type: count
+    start: >
+      {{ now().replace(hour=0, minute=0, second=0)
+         - timedelta(days=now().weekday()) }}
+    end: "{{ now() }}"
+  - platform: history_stats
+    unique_id: rain_gauge_flips_off_week
+    name: "Rain Gauge flips/off [week]"
+    entity_id: binary_sensor.rain_gauge
+    state: "off"
+    type: count
+    start: >
+      {{ now().replace(hour=0, minute=0, second=0)
+         - timedelta(days=now().weekday()) }}
+    end: "{{ now() }}"
+  - platform: history_stats
+    unique_id: rain_gauge_flips_on_month
+    name: "Rain Gauge flips/on [month]"
+    entity_id: binary_sensor.rain_gauge
+    state: "on"
+    type: count
+    start: "{{ now().replace(day=1, hour=0, minute=0, second=0) }}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    unique_id: rain_gauge_flips_off_month
+    name: "Rain Gauge flips/off [month]"
+    entity_id: binary_sensor.rain_gauge
+    state: "off"
+    type: count
+    start: "{{ now().replace(day=1, hour=0, minute=0, second=0) }}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    unique_id: rain_gauge_flips_on_year
+    name: "Rain Gauge flips/on [year]"
+    entity_id: binary_sensor.rain_gauge
+    state: "on"
+    type: count
+    start: "{{ now().replace(month=1, day=1, hour=0, minute=0, second=0) }}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    unique_id: rain_gauge_flips_off_year
+    name: "Rain Gauge flips/off [year]"
+    entity_id: binary_sensor.rain_gauge
+    state: "off"
+    type: count
+    start: "{{ now().replace(month=1, day=1, hour=0, minute=0, second=0) }}"
+    end: "{{ now() }}"
+
+template:
+  - sensor:
+      - name: Rainfall [week]
+        unique_id: rainfall_week
+        state_class: measurement
+        unit_of_measurement: mm
+        icon: mdi:weather-pouring
+        state: >-
+          {% set on = states('sensor.rain_gauge_flips_on_week') | int(0) %}
+          {% set off = states('sensor.rain_gauge_flips_off_week') | int(0) %}
+          {% set mm = (on + off) * 0.31569 %}
+          {% if mm >= 0 %}
+            {{ mm | round(1, 'floor') }}
+          {% endif %}
+      - name: Rainfall [month]
+        unique_id: rainfall_month
+        state_class: measurement
+        unit_of_measurement: mm
+        icon: mdi:weather-pouring
+        state: >-
+          {% set on = states('sensor.rain_gauge_flips_on_month') | int(0) %}
+          {% set off = states('sensor.rain_gauge_flips_off_month') | int(0) %}
+          {% set mm = (on + off) * 0.31569 %}
+          {% if mm >= 0 %}
+            {{ mm | round(1, 'floor') }}
+          {% endif %}
+      - name: Rainfall [year]
+        unique_id: rainfall_year
+        state_class: measurement
+        unit_of_measurement: mm
+        icon: mdi:weather-pouring
+        state: >-
+          {% set on = states('sensor.rain_gauge_flips_on_year') | int(0) %}
+          {% set off = states('sensor.rain_gauge_flips_off_year') | int(0) %}
+          {% set mm = (on + off) * 0.31569 %}
+          {% if mm >= 0 %}
+            {{ mm | round(1, 'floor') }}
+          {% endif %}

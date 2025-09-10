@@ -1,0 +1,31 @@
+---
+#
+# Added to a dashboard to create a weekly chart of rain.
+#
+
+type: custom:mini-graph-card
+icon: mdi:weather-rainy
+name: Rain (weekly)
+aggregate_func: max
+hours_to_show: 1344  # 8 weeks
+group_by: week
+show:
+  graph: bar
+  fill: true
+  icon: false
+color_thresholds:
+  - value: 60
+    color: "#030ffc"
+  - value: 40
+    color: "#353ffc"
+  - value: 30
+    color: "#656dfc"
+  - value: 20
+    color: "#979dfc"
+  - value: 10
+    color: "#afb3fa"
+  - value: 0
+    color: "#ffffff"
+entities:
+  - entity: sensor.rainfall_week
+    state_adaptive_color: false

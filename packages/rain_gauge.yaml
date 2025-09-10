@@ -52,7 +52,7 @@ template:
   - sensor:
       - name: Rainfall [day]
         state_class: measurement
-        unique_id: rainfall_day
+        unique_id: rainfall_per_day
         unit_of_measurement: mm
         icon: mdi:weather-pouring
         state: >-

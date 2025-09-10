@@ -1,0 +1,26 @@
+---
+#
+# Monthly rain chart with previous year comparison.
+#
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Monthly Rainfall
+graph_span: 1y
+span:
+  start: month
+series:
+  - entity: sensor.rainfall_month
+    name: This Year
+    type: column
+    group_by:
+      duration: 1month
+      func: max
+  - entity: sensor.rainfall_month
+    name: Last Year
+    type: column
+    offset: -1y
+    group_by:
+      duration: 1month
+      func: max

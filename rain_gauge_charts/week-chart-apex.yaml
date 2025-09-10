@@ -1,0 +1,32 @@
+---
+#
+# Added to a dashboard to create a weekly chart of rain using ApexCharts.
+#
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Weekly Rainfall
+graph_span: 8w
+span:
+  start: week
+series:
+  - entity: sensor.rainfall_week
+    name: Rain (weekly)
+    type: column
+    group_by:
+      duration: 1w
+      func: max
+    color_threshold:
+      - value: 0
+        color: "#ffffff"
+      - value: 10
+        color: "#afb3fa"
+      - value: 20
+        color: "#979dfc"
+      - value: 30
+        color: "#656dfc"
+      - value: 40
+        color: "#353ffc"
+      - value: 60
+        color: "#030ffc"

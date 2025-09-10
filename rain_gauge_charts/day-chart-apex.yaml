@@ -1,0 +1,32 @@
+---
+#
+# Added to a dashboard to create a daily chart of rain using ApexCharts.
+#
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Daily Rainfall
+graph_span: 15d
+span:
+  start: day
+series:
+  - entity: sensor.rainfall_per_day
+    name: Rain
+    type: column
+    group_by:
+      duration: 1d
+      func: max
+    color_threshold:
+      - value: 0
+        color: "#ffffff"
+      - value: 1
+        color: "#afb3fa"
+      - value: 3
+        color: "#979dfc"
+      - value: 5
+        color: "#656dfc"
+      - value: 7
+        color: "#353ffc"
+      - value: 12
+        color: "#030ffc"

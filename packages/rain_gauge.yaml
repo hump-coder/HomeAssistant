@@ -1,9 +1,10 @@
+---
 #
 # This gets added to configuration.yaml in Home Assistant.
 #
-
 #
-# Defines a sensor that caluculates counts of toggles of the rain_gauge (zigbee door sensor)
+# Defines a sensor that caluculates counts of toggles of the
+# rain_gauge (zigbee door sensor)
 #
 
 sensor:
@@ -23,15 +24,31 @@ sensor:
     type: count
     start: "{{ now() - timedelta(hours=24)}}"
     end: "{{ now() }}"
+  - platform: history_stats
+    unique_id: rain_gauge_flips_on_hour
+    name: "Rain Gauge flips/on [hour]"
+    entity_id: binary_sensor.rain_gauge
+    state: "on"
+    type: count
+    start: "{{ now() - timedelta(hours=1)}}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    unique_id: rain_gauge_flips_off_hour
+    name: "Rain Gauge flips/off [hour]"
+    entity_id: binary_sensor.rain_gauge
+    state: "off"
+    type: count
+    start: "{{ now() - timedelta(hours=1)}}"
+    end: "{{ now() }}"
 
- #
- # Defines a template sensor that uses the flips caluculated above
- # creates a daily measurement.
- #
- #
+#
+# Defines template sensors that use the flips caluculated above.
+# Creates hourly and daily measurements.
+#
+#
 
-template:  
- 
+template:
+
   - sensor:
       - name: Rainfall [day]
         state_class: measurement
@@ -39,8 +56,21 @@ template:
         unit_of_measurement: mm
         icon: mdi:weather-pouring
         state: >-
-          {% set count = (states('sensor.rain_gauge_flips_on') | int(0)) + (states('sensor.rain_gauge_flips_off') | int(0)) %}
+          {% set count = (states('sensor.rain_gauge_flips_on') | int(0)) +
+                          (states('sensor.rain_gauge_flips_off') | int(0)) %}
           {% set mm = count * 0.31569 %}
           {% if count >= 0 %}
             {{ mm|round(1, 'floor') }}
+          {% endif %}
+      - name: Rainfall per hour
+        state_class: measurement
+        unique_id: rainfall_per_hour
+        unit_of_measurement: mm
+        icon: mdi:weather-pouring
+        state: >-
+          {% set on = states('sensor.rain_gauge_flips_on_hour') | int(0) %}
+          {% set off = states('sensor.rain_gauge_flips_off_hour') | int(0) %}
+          {% set mm = (on + off) * 0.31569 %}
+          {% if mm >= 0 %}
+            {{ mm | round(1, 'floor') }}
           {% endif %}

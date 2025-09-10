@@ -1,0 +1,32 @@
+---
+#
+# Added to a dashboard to create an hourly chart of rain using ApexCharts.
+#
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Hourly Rainfall
+graph_span: 2d
+span:
+  start: hour
+series:
+  - entity: sensor.rainfall_per_hour
+    name: Rain
+    type: column
+    group_by:
+      duration: 1h
+      func: max
+    color_threshold:
+      - value: 0
+        color: "#ffffff"
+      - value: 1
+        color: "#afb3fa"
+      - value: 3
+        color: "#979dfc"
+      - value: 5
+        color: "#656dfc"
+      - value: 7
+        color: "#353ffc"
+      - value: 12
+        color: "#030ffc"

@@ -1,0 +1,190 @@
+# packages/rain_gauge_ex.yaml
+
+input_number:
+  rain_mm_per_tip:
+    name: Rain mm per tip
+    min: 0
+    max: 2
+    step: 0.00001
+    mode: box
+    unit_of_measurement: "mm"
+    icon: mdi:cup-water
+    initial: 0.31569
+
+  rain_total_mm:
+    name: Rain total meter (mm)
+    min: 0
+    max: 100000
+    step: 0.001
+    mode: box
+    unit_of_measurement: "mm"
+    icon: mdi:counter
+
+input_datetime:
+  rain_last_tip:
+    name: Rain last tip
+    has_date: true
+    has_time: true
+
+automation:
+  - id: rain_gauge_count_tip
+    alias: Rain gauge — count tip
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.rain_gauge
+        for: "00:00:01"  # debounce
+    action:
+      - variables:
+          mm_per_tip: "{{ states('input_number.rain_mm_per_tip') | float(0.31569) }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.rain_total_mm
+        data:
+          value: "{{ (states('input_number.rain_total_mm') | float(0)) + mm_per_tip }}"
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.rain_last_tip
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+# HISTORY STATS MUST GO UNDER sensor: AS A PLATFORM
+sensor:
+  - platform: history_stats
+    name: Rain tips 24h on
+    entity_id: binary_sensor.rain_gauge
+    state: "on"
+    type: count
+    start: "{{ now() - timedelta(hours=24) }}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    name: Rain tips 24h off
+    entity_id: binary_sensor.rain_gauge
+    state: "off"
+    type: count
+    start: "{{ now() - timedelta(hours=24) }}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    name: Rain tips 10m on
+    entity_id: binary_sensor.rain_gauge
+    state: "on"
+    type: count
+    start: "{{ now() - timedelta(minutes=10) }}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    name: Rain tips 10m off
+    entity_id: binary_sensor.rain_gauge
+    state: "off"
+    type: count
+    start: "{{ now() - timedelta(minutes=10) }}"
+    end: "{{ now() }}"
+  - platform: history_stats
+    name: Rain tips today on
+    entity_id: binary_sensor.rain_gauge
+    state: "on"
+    type: count
+    start: "{{ today_at() }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: Rain tips today off
+    entity_id: binary_sensor.rain_gauge
+    state: "off"
+    type: count
+    start: "{{ today_at() }}"
+    end: "{{ now() }}"
+
+template:
+  - sensor:
+      - name: Rainfall today (mm)
+        unique_id: rainfall_today_mm
+        unit_of_measurement: "mm"
+        device_class: precipitation
+        state_class: measurement
+        state: >
+          {% set on = states('sensor.rain_tips_today_on')|int(0) %}
+          {% set off = states('sensor.rain_tips_today_off')|int(0) %}
+          {% set tips = (on + off) - 1 %}
+          {% if tips < 0 %}
+          {%   set tips = 0 %}
+          {% endif %}
+          {% set mm_per_tip = states('input_number.rain_mm_per_tip')|float(0.31569) %}
+          {{ (tips * mm_per_tip) | round(2) }}
+  
+      - name: Rain total (mm)
+        unique_id: rain_total_mm
+        state: "{{ states('input_number.rain_total_mm') | float(0) }}"
+        unit_of_measurement: "mm"
+        device_class: precipitation
+        state_class: total_increasing
+
+      - name: Rainfall past 24h (mm)
+        unique_id: rain_past_24h_mm
+        unit_of_measurement: "mm"
+        device_class: precipitation
+        state_class: measurement
+        state: >
+          {% set on = states('sensor.rain_tips_24h_on')|int(0) %}
+          {% set off = states('sensor.rain_tips_24h_off')|int(0) %}
+          {% set tips = (on + off) - 1 %}
+          {% if tips < 0 %}
+          {%   set tips = 0 %}
+          {% endif %}
+          {% set mm_per_tip = states('input_number.rain_mm_per_tip')|float(0.31569) %}
+          {{ (tips * mm_per_tip) | round(2) }}
+
+      - name: Rain rate (mm/h)
+        unique_id: rain_rate_mmh
+        unit_of_measurement: "mm/h"
+        device_class: precipitation_intensity
+        state_class: measurement
+        state: >
+          {% set tips10 = (states('sensor.rain_tips_10m_on')|int(0) + states('sensor.rain_tips_10m_off')|int(0)) %}
+          {% set tips10 = tips10 - 1 %}
+          {% if tips10 < 0 %}
+          {%   set tips10 = 0 %}
+          {% endif %}
+
+          {% set mm_per_tip = states('input_number.rain_mm_per_tip')|float(0.31569) %}
+          {{ (tips10 * mm_per_tip * 6) | round(2) }}
+
+  - trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    sensor:
+      - name: Hours since last rain
+        unique_id: hours_since_last_rain
+        unit_of_measurement: "h"
+        state_class: measurement
+        icon: mdi:weather-partly-rainy
+        state: >
+          {% set last = states('input_datetime.rain_last_tip') %}
+          {% if last in ('unknown','unavailable') %}
+            0
+          {% else %}
+            {{ ((now().timestamp() - as_timestamp(last, 0))/3600) | round(1) }}
+          {% endif %}
+    binary_sensor:
+      - name: Raining now
+        unique_id: raining_now
+        device_class: moisture
+        state: >
+          {% set last = states('input_datetime.rain_last_tip') %}
+          {% if last in ('unknown','unavailable') %}
+            false
+          {% else %}
+            {{ (now().timestamp() - as_timestamp(last, 0)) < 600 }}
+          {% endif %}
+
+utility_meter:
+  rain_daily:
+    source: sensor.rain_total_mm
+    cycle: daily
+  rain_weekly:
+    source: sensor.rain_total_mm
+    cycle: weekly
+  rain_monthly:
+    source: sensor.rain_total_mm
+    cycle: monthly
+  rain_yearly:
+    source: sensor.rain_total_mm
+    cycle: yearly

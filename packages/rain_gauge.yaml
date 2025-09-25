@@ -65,11 +65,11 @@ template:
           {% set count = (states('sensor.rain_gauge_flips_on') | int(0)) +
                           (states('sensor.rain_gauge_flips_off') | int(0)) %}
           {% set count = count - 1 %}
-          {% if(count < 0) %}
+          {% if count < 0 %}
           {%   set count = 0  %}
           {% endif %}
           {% set mm = count * 0.31569 %}
-          {% if count > 0 %}
+          {% if count >= 0 %}
             {{ mm|round(1, 'floor') }}
           {% endif %}
       - name: Rainfall per hour
@@ -81,11 +81,11 @@ template:
           {% set on = states('sensor.rain_gauge_flips_on_hour') | int(0) %}
           {% set off = states('sensor.rain_gauge_flips_off_hour') | int(0) %}
           {% set count = (on + off) - 1 %}
-          {% if(count < 0) %}
+          {% if count < 0 %}
           {%   set count = 0  %}
           {% endif %}          
           {% set mm = count * 0.31569 %}
-          {% if mm > 0 %}
+          {% if mm >= 0 %}
             {{ mm | round(1, 'floor') }}
           {% endif %}
 

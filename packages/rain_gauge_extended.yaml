@@ -65,8 +65,12 @@ template:
         state: >-
           {% set on = states('sensor.rain_gauge_flips_on_week') | int(0) %}
           {% set off = states('sensor.rain_gauge_flips_off_week') | int(0) %}
-          {% set mm = (on + off) * 0.31569 %}
-          {% if mm >= 0 %}
+          {% set count = (on + off) - 1 %}
+          {% if count < 0 %}
+          {%   set count = 0 %}
+          {% endif %}
+          {% set mm = count * 0.31569 %}
+          {% if mm > 0 %}
             {{ mm | round(1, 'floor') }}
           {% endif %}
       - name: Rainfall [month]
@@ -77,8 +81,12 @@ template:
         state: >-
           {% set on = states('sensor.rain_gauge_flips_on_month') | int(0) %}
           {% set off = states('sensor.rain_gauge_flips_off_month') | int(0) %}
-          {% set mm = (on + off) * 0.31569 %}
-          {% if mm >= 0 %}
+          {% set count = (on + off) - 1 %}
+          {% if count < 0 %}
+          {%   set count = 0 %}
+          {% endif %}
+          {% set mm = count * 0.31569 %}
+          {% if mm > 0 %}
             {{ mm | round(1, 'floor') }}
           {% endif %}
       - name: Rainfall [year]
@@ -89,7 +97,11 @@ template:
         state: >-
           {% set on = states('sensor.rain_gauge_flips_on_year') | int(0) %}
           {% set off = states('sensor.rain_gauge_flips_off_year') | int(0) %}
-          {% set mm = (on + off) * 0.31569 %}
-          {% if mm >= 0 %}
+          {% set count = (on + off) - 1 %}
+          {% if count < 0 %}
+          {%   set count = 0 %}
+          {% endif %}
+          {% set mm = count * 0.31569 %}
+          {% if mm > 0 %}
             {{ mm | round(1, 'floor') }}
           {% endif %}
